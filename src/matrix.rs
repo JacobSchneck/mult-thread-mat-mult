@@ -6,10 +6,10 @@
 pub type Mat = Vec<Vec<i32>>;
 
 pub struct Matrix {
-    transpose: Mat,
-    pub m: usize,
-    pub n: usize,
-    matrix: Mat,
+	pub transpose: Mat,
+	pub m: usize,
+	pub n: usize,
+	pub matrix: Mat,
 }
 
 fn transpose(nested_vec: &Vec<Vec<i32>>) -> Vec<Vec<i32>> {
@@ -53,4 +53,28 @@ impl std::fmt::Display for Matrix {
         }
         write!(f, "{}", str)
     }
+}
+
+#[cfg(test)]
+mod test_matrix {
+    use super::*;
+
+    #[test] 
+    fn basic_test() {
+        let matrix: Matrix = Matrix::from(vec![vec![1, 0], vec![0, 1]]);
+        assert_eq!(matrix.get_row(0), &[1, 0]);
+        assert_eq!(matrix.get_row(1), &[0, 1]);
+
+        assert_eq!(matrix.get_col(0), &[1, 0]);
+        assert_eq!(matrix.get_col(1), &[0, 1]);
+        
+        let matrix: Matrix = Matrix::from(vec![vec![1, 2, 3], vec![4, 5, 6]]);
+        assert_eq!(matrix.get_row(0), &[1, 2, 3]);
+        assert_eq!(matrix.get_row(1), &[4, 5, 6]);
+
+        assert_eq!(matrix.get_col(0), &[1, 4]);
+        assert_eq!(matrix.get_col(1), &[2, 5]);
+        assert_eq!(matrix.get_col(2), &[3, 6]);
+    }
+
 }
