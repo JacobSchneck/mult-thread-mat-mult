@@ -4,7 +4,6 @@
 )]
 
 pub type Mat = Vec<Vec<i32>>;
-
 pub struct Matrix {
 	pub transpose: Mat,
 	pub m: usize,

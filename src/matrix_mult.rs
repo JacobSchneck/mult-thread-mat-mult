@@ -8,8 +8,10 @@ use std::thread;
 use std::sync::Arc;
 
 use crate::matrix::Matrix;
+use crate::matrix_subtract::{self, matrix_subtract};
+use crate::matrix_add::matrix_add;
 
-pub fn mult_mat(A: Matrix, B: Matrix) -> Result<Matrix, String> {
+pub fn mult_mat(A: &Matrix, B: &Matrix) -> Result<Matrix, String> {
     if A.n != B.m {
         let message = format!("Matrix {}x{} cannot be multiplied matrix {}x{}", A.m, A.n, B.m, B.n);
         return Err(message);
@@ -31,7 +33,7 @@ pub fn mult_mat(A: Matrix, B: Matrix) -> Result<Matrix, String> {
     Ok(Matrix::from(result))
 }
 
-fn split_matrix(matrix: Matrix) -> Vec<Matrix> {
+fn split_matrix(matrix: &Matrix) -> Vec<Matrix> {
 	let new_m = matrix.m / 2;
 	let new_n = matrix.n / 2;
 
@@ -50,10 +52,39 @@ fn split_matrix(matrix: Matrix) -> Vec<Matrix> {
 	result
 }
 
-fn strassen(A: Matrix, B: Matrix) -> Matrix {
-	if A.len() == 1 {
-		return A[0] 
+fn strassen(A: &Matrix, B: &Matrix) -> Matrix {
+	if A.matrix.len() == 1 {
+		return mult_mat(&A, &B).unwrap();
 	}
+
+	let split_A = split_matrix(A);
+	let a = &split_A[0];
+	let b = &split_A[1];
+	let c = &split_A[2];
+	let d = &split_A[3];
+
+	let split_B = split_matrix(B);
+	let e = &split_B[0];
+	let f = &split_B[1];
+	let g = &split_B[2];
+	let h = &split_B[3];
+
+	let p1 = &strassen(a, &matrix_subtract(f, h).unwrap());
+	let p2 = &strassen(&matrix_add(a, b).unwrap(), h);
+	let p3 = &strassen(&matrix_add(c, d).unwrap(), e);
+	let p4 = &strassen(d, &matrix_subtract(g ,e).unwrap());
+	let p5 = &strassen(&matrix_add(a, d).unwrap(), &matrix_add(e, h).unwrap());
+	let p6 = &strassen(&matrix_subtract(b, d).unwrap(), &matrix_add(g, h).unwrap());
+	let p7 = &strassen(&matrix_subtract(a, c).unwrap(), &matrix_add(e, f).unwrap());
+
+	let c11 = matrix_subtract(&matrix_add(p5, p4).unwrap(), &matrix_add(p2, p6).unwrap()).unwrap();
+	let c12 = matrix_add(p1, p2).unwrap();
+	let c21 = matrix_add(p3, p4).unwrap();
+	let c22 = matrix_subtract(&matrix_add(p1, p5).unwrap(), &matrix_subtract(p3, p7).unwrap()).unwrap();
+
+	let result: Vec<Vec<i32>> = vec![];
+
+	unimplemented!()
 }
 
 pub fn mult_mat_div_and_conq(A: Matrix, B: Matrix) -> Result<Matrix, String> {
@@ -86,7 +117,7 @@ pub mod test_matrix_mult {
 		let A: Matrix = Matrix::from(vec![vec![1, 2, 3], vec![4, 5, 6]]);
 		let B: Matrix = Matrix::from(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]]);
 
-		let result = mult_mat(A, B).unwrap();
+		let result = mult_mat(&A, &B).unwrap();
 		assert_eq!(result.get_row(0), &[30, 36, 42]);
 		assert_eq!(result.get_row(1), &[66, 81, 96]);
 	}
@@ -97,7 +128,7 @@ pub mod test_matrix_mult {
 		let A: Matrix = Matrix::from(vec![vec![2, 3], vec![5, 6]]);
 		let B: Matrix = Matrix::from(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]]);
 
-		let result = mult_mat(A, B);
+		let result = mult_mat(&A, &B);
 		result.unwrap();
 	}
 
