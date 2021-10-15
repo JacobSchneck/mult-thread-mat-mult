@@ -4,6 +4,8 @@
 	 unused_variables,
 )]
 
+extern crate num_cpus;
+
 use std::thread;
 use std::sync::Arc;
 
@@ -82,7 +84,9 @@ fn strassen(A: &Matrix, B: &Matrix) -> Matrix {
 	let c21 = matrix_add(p3, p4).unwrap();
 	let c22 = matrix_subtract(&matrix_add(p1, p5).unwrap(), &matrix_subtract(p3, p7).unwrap()).unwrap();
 
+
 	let result: Vec<Vec<i32>> = vec![];
+
 
 	unimplemented!()
 }
@@ -92,16 +96,47 @@ pub fn mult_mat_div_and_conq(A: Matrix, B: Matrix) -> Result<Matrix, String> {
 	unimplemented!();
 }
 
-pub fn concurrent_mult_mat(A: Matrix, B: Matrix, pool: u32) -> Result<Matrix, String> {
+pub fn partition_rows(m: usize, pool: usize) -> Vec<Vec<usize>> {
+	// partition data
+	let set  = m / pool;
+	let leftover = m % pool;
+
+	
+	let mut rows: Vec<Vec<usize>> = Vec::new();
+	let mut rows_partitioned = 0;
+	while rows_partitioned < m {
+		if rows_partitioned + set > m {
+			for i in rows_partitioned..m {
+				let last_index = rows.len() - 1;
+				rows[last_index].push(i);
+				rows_partitioned += 1;
+			}
+		} else {
+			rows.push((rows_partitioned..(rows_partitioned + set)).collect::<Vec<usize>>());
+			rows_partitioned += set;
+		}
+	}
+	rows
+}
+
+pub fn concurrent_mult_mat(A: Matrix, B: Matrix) -> Result<Matrix, String> {
     if A.n != B.m {
         let message = format!("Matrix {}x{} cannot be multiplied matrix {}x{}", A.m, A.n, B.m, B.n);
         return Err(message);
     }
 
-    for _ in 0..pool {
-        thread::spawn(|| {
+	 let pool = num_cpus::get();
+	 
+	 if A.m <= 4 {
+		return mult_mat(&A, &B);
+	 }
 
-        });
+
+
+    for _ in 0..pool {
+		thread::spawn(|| {
+			
+		});
     }
 
     unimplemented!();
@@ -130,6 +165,31 @@ pub mod test_matrix_mult {
 
 		let result = mult_mat(&A, &B);
 		result.unwrap();
+	}
+
+	#[test]
+	fn test_partition_rows() {
+		// println!("{:?}", (0..10).collect::<Vec<usize>>());
+		assert_eq!(partition_rows(12, 4), &[
+			[0, 1, 2], 
+			[3, 4, 5], 
+			[6, 7, 8], 
+			[9, 10, 11]
+		]);
+
+		assert_eq!(partition_rows(13, 4), vec![
+			vec![0, 1, 2], 
+			vec![3, 4, 5], 
+			vec![6, 7, 8], 
+			vec![9, 10, 11, 12]
+		]);
+
+		assert_eq!(partition_rows(13, 3), vec![
+			vec![0, 1, 2, 3], 
+			vec![4, 5, 6, 7], 
+			vec![8, 9, 10, 11, 12]
+		]);
+		
 	}
 
 	#[test]
