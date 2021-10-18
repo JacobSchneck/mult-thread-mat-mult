@@ -1,13 +1,17 @@
+
 #![allow(
     dead_code,
     non_snake_case,
 	 unused_variables,
+	 unused_imports,
 )]
 
 extern crate num_cpus;
 
-use std::thread;
-use std::sync::Arc;
+use std::borrow::BorrowMut;
+use std::ops::DerefMut;
+use std::thread::{self, JoinHandle};
+use std::sync::{Arc, Mutex};
 
 use crate::matrix::Matrix;
 use crate::matrix_subtract::{self, matrix_subtract};
@@ -120,26 +124,53 @@ pub fn partition_rows(m: usize, pool: usize) -> Vec<Vec<usize>> {
 }
 
 pub fn concurrent_mult_mat(A: Matrix, B: Matrix) -> Result<Matrix, String> {
-    if A.n != B.m {
-        let message = format!("Matrix {}x{} cannot be multiplied matrix {}x{}", A.m, A.n, B.m, B.n);
-        return Err(message);
-    }
+	if A.n != B.m {
+	let message = format!("Matrix {}x{} cannot be multiplied matrix {}x{}", A.m, A.n, B.m, B.n);
+	return Err(message);
+	}
 
-	 let pool = num_cpus::get();
-	 
-	 if A.m <= 4 {
-		return mult_mat(&A, &B);
-	 }
+	// why bother with multithreading in this case;
+	let pool = num_cpus::get();
+	if A.m <= pool {
+	return mult_mat(&A, &B);
+	}
+
+	let partitions = partition_rows(A.m, pool);
+
+	let mut handles: Vec<JoinHandle<Result<Vec<i32>, &str>>> = vec![];
+
+	for partition in partitions {
+		// HACK: Having to clone the matrix for every instance to prevent angry borrow checker
+		let A = A.clone(); 
+		let B = B.clone();
+		let partition = partition.clone();
+		handles.push(thread::spawn(move || {
+			let mut result = Vec::<i32>::new();
+
+			for row_index in partition {
+				let row_vals = A.get_row(row_index);
+				for col_index in 0..B.n {
+					let col_vals = B.get_col(col_index);
+					let mut val = 0;
+					for i in 0..row_vals.len() {
+						val += row_vals[i] * col_vals[i];
+					}
+					result.push(val);
+				}
+				// println!("{:?}", result);
+			}
+			Ok(result)
+		}));
+	}
 
 
+	let mut full_result: Vec<Vec<i32>> = Vec::new();
+	for handle in handles {
+		let result = handle.join().unwrap().unwrap();
+		full_result.push(result);
+	}
 
-    for _ in 0..pool {
-		thread::spawn(|| {
-			
-		});
-    }
-
-    unimplemented!();
+	Ok(Matrix::from(full_result))
 }
 
 
@@ -189,7 +220,43 @@ pub mod test_matrix_mult {
 			vec![4, 5, 6, 7], 
 			vec![8, 9, 10, 11, 12]
 		]);
-		
+	}
+
+	#[test]
+	fn test_concurrent_mat_mult() {
+		// Basic Test
+		let A: Matrix = Matrix::from(vec![vec![1, 2, 3], vec![4, 5, 6]]);
+		let B: Matrix = Matrix::from(vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]]);
+
+		let result = concurrent_mult_mat(A, B).unwrap();
+		assert_eq!(result.get_row(0), &[30, 36, 42]);
+		assert_eq!(result.get_row(1), &[66, 81, 96]);
+		let A: Matrix = Matrix::from(vec![
+			vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+			vec![0, 1, 0, 0, 0, 0, 0, 0, 0, 0], 
+			vec![0, 0, 1, 0, 0, 0, 0, 0, 0, 0], 
+			vec![0, 0, 0, 1, 0, 0, 0, 0, 0, 0], 
+			vec![0, 0, 0, 0, 1, 0, 0, 0, 0, 0], 
+			vec![0, 0, 0, 0, 0, 1, 0, 0, 0, 0], 
+			vec![0, 0, 0, 0, 0, 0, 1, 0, 0, 0], 
+			vec![0, 0, 0, 0, 0, 0, 0, 1, 0, 0], 
+			vec![0, 0, 0, 0, 0, 0, 0, 0, 1, 0], 
+			vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
+		]);
+		let B: Matrix = Matrix::from(vec![
+			vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+			vec![0, 1, 0, 0, 0, 0, 0, 0, 0, 0], 
+			vec![0, 0, 1, 0, 0, 0, 0, 0, 0, 0], 
+			vec![0, 0, 0, 1, 0, 0, 0, 0, 0, 0], 
+			vec![0, 0, 0, 0, 1, 0, 0, 0, 0, 0], 
+			vec![0, 0, 0, 0, 0, 1, 0, 0, 0, 0], 
+			vec![0, 0, 0, 0, 0, 0, 1, 0, 0, 0], 
+			vec![0, 0, 0, 0, 0, 0, 0, 1, 0, 0], 
+			vec![0, 0, 0, 0, 0, 0, 0, 0, 1, 0], 
+			vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
+		]);
+		let result = concurrent_mult_mat(A, B);
+		println!("{}", result.unwrap());
 	}
 
 	#[test]

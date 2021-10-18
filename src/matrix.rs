@@ -4,6 +4,8 @@
 )]
 
 pub type Mat = Vec<Vec<i32>>;
+
+#[derive(Clone)]
 pub struct Matrix {
 	pub transpose: Mat,
 	pub m: usize,
