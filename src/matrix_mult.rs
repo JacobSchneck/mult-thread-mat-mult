@@ -96,7 +96,6 @@ fn strassen(A: &Matrix, B: &Matrix) -> Matrix {
 }
 
 pub fn mult_mat_div_and_conq(A: Matrix, B: Matrix) -> Result<Matrix, String> {
-
 	unimplemented!();
 }
 
@@ -157,7 +156,6 @@ pub fn concurrent_mult_mat(A: Matrix, B: Matrix) -> Result<Matrix, String> {
 					}
 					result.push(val);
 				}
-				// println!("{:?}", result);
 			}
 			Ok(result)
 		}));
@@ -172,7 +170,6 @@ pub fn concurrent_mult_mat(A: Matrix, B: Matrix) -> Result<Matrix, String> {
 
 	Ok(Matrix::from(full_result))
 }
-
 
 #[cfg(test)]
 pub mod test_matrix_mult {
@@ -254,6 +251,34 @@ pub mod test_matrix_mult {
 			vec![0, 0, 0, 0, 0, 0, 0, 1, 0, 0], 
 			vec![0, 0, 0, 0, 0, 0, 0, 0, 1, 0], 
 			vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
+		]);
+		let result = concurrent_mult_mat(A, B);
+		println!("{}", result.unwrap());
+
+		// Confirmed using numpy
+		let A: Matrix = Matrix::from(vec![
+			vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 
+			vec![1, 1, 0, 0, 0, 0, 0, 0, 1, 1], 
+			vec![1, 0, 1, 0, 0, 0, 0, 1, 0, 1], 
+			vec![1, 0, 0, 1, 0, 0, 1, 0, 0, 1], 
+			vec![1, 0, 0, 0, 1, 1, 0, 0, 0, 1], 
+			vec![1, 0, 0, 0, 1, 1, 0, 0, 0, 1], 
+			vec![1, 0, 0, 1, 0, 0, 1, 0, 0, 1], 
+			vec![1, 0, 1, 0, 0, 0, 0, 1, 0, 1], 
+			vec![1, 1, 0, 0, 0, 0, 0, 0, 1, 1], 
+			vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 
+		]);
+		let B: Matrix = Matrix::from(vec![
+			vec![1, 0, 1, 0,], 
+			vec![0, 1, 0, 0,], 
+			vec![1, 0, 1, 0,], 
+			vec![1, 0, 0, 1,], 
+			vec![0, 1, 0, 1,], 
+			vec![0, 0, 1, 0,], 
+			vec![0, 1, 0, 1,], 
+			vec![1, 0, 0, 1,], 
+			vec![1, 0, 1, 0,], 
+			vec![0, 1, 0, 0,], 
 		]);
 		let result = concurrent_mult_mat(A, B);
 		println!("{}", result.unwrap());
